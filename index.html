@@ -56,6 +56,25 @@ function initClient() {
   }).catch(error => console.error('Error initializing YouTube Data API:', error));
 }
 
+function createPieChart(context, label1, label2) {
+  return new Chart(context, {
+    type: 'pie',
+    data: {
+      labels: [label1, label2],
+      datasets: [{
+        data: [50, 50],
+        backgroundColor: ['#007bff', '#cccccc'],
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false
+    }
+  });
+}
+
+
 function resetComparison() {
   clearInterval(updateInterval);
   document.getElementById('video-form').classList.remove('d-none');
@@ -74,6 +93,12 @@ function resetComparison() {
 
 let updateInterval;
 
+function updatePieChart(chart, percentage1, percentage2) {
+  chart.data.datasets[0].data = [percentage1, percentage2];
+  chart.update();
+}
+
+
 function compareLiveStreams(videoId1, videoId2) {
   updateInterval = setInterval(() => {
     gapi.client.youtube.videos.list({
@@ -90,9 +115,9 @@ function compareLiveStreams(videoId1, videoId2) {
       const concurrentViewers1 = parseInt(video1.liveStreamingDetails.concurrentViewers, 10) || 0;
       const concurrentViewers2 = parseInt(video2.liveStreamingDetails.concurrentViewers, 10) || 0;
 
-      const totalViews = views1 + views2;
-      const percentage1 = ((views1 / totalViews) * 100).toFixed(2);
-      const percentage2 = ((views2 / totalViews) * 100).toFixed(2);
+      const totalConcurrentViewers = concurrentViewers1 + concurrentViewers2;
+      const livePercentage1 = ((concurrentViewers1 / totalConcurrentViewers) * 100).toFixed(2);
+      const livePercentage2 = ((concurrentViewers2 / totalConcurrentViewers) * 100).toFixed(2);
 
       document.getElementById('video-title-1').innerText = video1.snippet.title;
       document.getElementById('video-title-2').innerText = video2.snippet.title;
@@ -100,8 +125,8 @@ function compareLiveStreams(videoId1, videoId2) {
       document.getElementById('video-views-2').innerText = views2.toLocaleString();
       document.getElementById('video-concurrent-viewers-1').innerText = concurrentViewers1.toLocaleString();
       document.getElementById('video-concurrent-viewers-2').innerText = concurrentViewers2.toLocaleString();
-      document.getElementById('video-percentage-1').innerText = percentage1;
-      document.getElementById('video-percentage-2').innerText = percentage2;
+      document.getElementById('video-percentage-1').innerText = livePercentage1;
+      document.getElementById('video-percentage-2').innerText = livePercentage2;
 
       if (!chart1) {
         const ctx1 = document.getElementById('video-chart-1').getContext('2d');
@@ -112,33 +137,13 @@ function compareLiveStreams(videoId1, videoId2) {
         chart2 = createPieChart(ctx2, video2.snippet.title, video1.snippet.title);
       }
 
-      updatePieChart(chart1, percentage1);
-      updatePieChart(chart2, percentage2);
+      updatePieChart(chart1, livePercentage1, livePercentage2);
+updatePieChart(chart2, livePercentage2, livePercentage1);
+
     }).catch(error => console.error('Error getting video data:', error));
   }, 10000);
 }
 
-function createPieChart(ctx, videoTitle1, videoTitle2) {
-  return new Chart(ctx, {
-    type: 'pie',
-    data: {
-      labels: [videoTitle1, videoTitle2],
-      datasets: [{
-        data: [0, 100],
-        backgroundColor: ['#007bff', '#cccccc'],
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-    }
-  });
-}
-
-function updatePieChart(chart, percentage) {
-  chart.data.datasets[0].data = [percentage, 100 - percentage];
-  chart.update();
-}
 
 
   </script>
@@ -166,8 +171,8 @@ function updatePieChart(chart, percentage) {
           <div class="card rounded shadow">
             <div class="card-body d-flex flex-column">
               <h4 class="card-title" id="video-title-1">Video 1 Title</h4>
-              <p class="card-text">Views: <span id="video-views-1">0</span></p>
-              <p class="card-text">Concurrent viewers: <span id="video-concurrent-viewers-1">0</span></p>
+              <p class="card-text d-none">Views: <span id="video-views-1">0</span></p>
+              <p class="card-text">Live Viewers: <span id="video-concurrent-viewers-1">0</span></p>
               <p class="card-text">Percentage: <span id="video-percentage-1">0</span>%</p>
               <div class="chart-container mt-auto">
                 <canvas id="video-chart-1"></canvas>
@@ -179,8 +184,8 @@ function updatePieChart(chart, percentage) {
           <div class="card rounded shadow">
             <div class="card-body d-flex flex-column">
               <h4 class="card-title" id="video-title-2">Video 2 Title</h4>
-              <p class="card-text">Views: <span id="video-views-2">0</span></p>
-              <p class="card-text">Concurrent viewers: <span id="video-concurrent-viewers-2">0</span></p>
+              <p class="card-text d-none">Views: <span id="video-views-2">0</span></p>
+              <p class="card-text">Live Viewers: <span id="video-concurrent-viewers-2">0</span></p>
               <p class="card-text">Percentage: <span id="video-percentage-2">0</span>%</p>
               <div class="chart-container mt-auto">
                 <canvas id="video-chart-2"></canvas>
