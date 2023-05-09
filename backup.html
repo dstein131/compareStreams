@@ -9,13 +9,30 @@
     <script src="https://apis.google.com/js/api.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        .border-color-1 {
+            border: 10px solid #007bff;
+        }
+
+        .border-color-2 {
+            border: 10px solid #cccccc;
+        }
+
+        .border-color-3 {
+            border: 10px solid #28a745;
+        }
+
+        .border-color-4 {
+            border: 10px solid #ffc107;
+        }
+
         body {
-            background-color: #dddddd;
+            background-color: #eaeaea;
         }
 
         .card {
             height: 100%;
             max-width: 360px;
+            margin: 2rem;
         }
 
         .chart-container {
@@ -55,7 +72,7 @@
 
         function initClient() {
             gapi.client.init({
-                apiKey: 'AIzaSyB2E9qxwpsLkA9CGm-5U65bselwI77dLBA',
+                apiKey: 'AIzaSyBmmRmLzAr26IyHsjvpVeXdkgdVi6QljDI',
                 discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/youtube/v3/rest']
             }).then(() => {
                 document.getElementById('video-form').addEventListener('submit', function(event) {
@@ -79,23 +96,23 @@
             }).catch(error => console.error('Error initializing YouTube Data API:', error));
         }
 
-        function createPieChart(context, labels) {
-            return new Chart(context, {
-                type: 'pie',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: labels.map(() => 100 / labels.length),
-                        backgroundColor: ['#007bff', '#cccccc', '#28a745', '#ffc107'],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false
-                }
-            });
+function createPieChart(context, labels, data) {
+    return new Chart(context, {
+        type: 'pie',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: ['#007bff', '#cccccc', '#28a745', '#ffc107'],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
         }
+    });
+}
 
         function resetComparison() {
             clearInterval(updateInterval);
@@ -123,55 +140,93 @@
         }
 
         function compareLiveStreams(videoIds) {
-            videoIds.forEach((videoId, index) => {
-                document.getElementById(`video-iframe-${index + 1}`).innerHTML = `<iframe src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe>`;
-                document.getElementById(`video-card-${index + 1}`).classList.remove('d-none');
-            });
+  videoIds.forEach((videoId, index) => {
+    document.getElementById(`video-iframe-${index + 1}`).innerHTML = `<iframe src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe>`;
+    // document.getElementById(`video-card-${index + 1}`).classList.add(`border-color-${index + 1}`);
+    document.getElementById(`video-card-${index + 1}`).classList.remove('d-none');
+  });
 
-            updateInterval = setInterval(() => {
-                gapi.client.youtube.videos.list({
-                    id: videoIds.join(','),
-                    part: 'liveStreamingDetails,snippet,statistics'
-                }).then(response => {
-                    const videos = response.result.items;
+  let nextPageTokens = Array(videoIds.length).fill(null);
+  const superchatTotals = Array(videoIds.length).fill(0);
 
-                    const totalConcurrentViewers = videos.reduce((total, video) => {
-                        return total + (parseInt(video.liveStreamingDetails.concurrentViewers, 10) || 0);
-                    }, 0);
+  const listChatMessages = (videoIndex, pageToken) => {
+    gapi.client.youtube.liveChatMessages.list({
+      liveChatId: videos[videoIndex].liveStreamingDetails.activeLiveChatId,
+      part: 'snippet',
+      maxResults: 200,
+      pageToken
+    }).then(liveChatResponse => {
+      const liveChatMessages = liveChatResponse.result.items;
+      const nextPageToken = liveChatResponse.result.nextPageToken;
 
-                    videos.forEach((video, index) => {
-                        const views = parseInt(video.statistics.viewCount, 10);
-                        const concurrentViewers = parseInt(video.liveStreamingDetails.concurrentViewers, 10) || 0;
-                        const livePercentage = ((concurrentViewers / totalConcurrentViewers) * 100).toFixed(2);
-
-                        document.getElementById(`video-title-${index + 1}`).innerText = video.snippet.title;
-                        document.getElementById(`video-views-${index + 1}`).innerText = views.toLocaleString();
-                        document.getElementById(`video-concurrent-viewers-${index + 1}`).innerText = concurrentViewers.toLocaleString();
-                        document.getElementById(`video-percentage-${index + 1}`).innerText = livePercentage;
-
-                        if (charts[index] === undefined) {
-                            const ctx = document.getElementById(`video-chart-${index + 1}`).getContext('2d');
-                            charts[index] = createPieChart(ctx, videos.map(video => video.snippet.title));
-                        }
-                    });
-
-                    const livePercentages = videos.map(video => {
-                        const concurrentViewers = parseInt(video.liveStreamingDetails.concurrentViewers, 10) || 0;
-                        return ((concurrentViewers / totalConcurrentViewers) * 100).toFixed(2);
-                    });
-
-                    charts.forEach(chart => updatePieChart(chart, livePercentages));
-
-                }).catch(error => console.error('Error getting video data:', error));
-            }, 10000);
+      liveChatMessages.forEach(message => {
+        if (message.snippet.hasOwnProperty('superChatDetails')) {
+          const superchatAmount = parseFloat(message.snippet.superChatDetails.amountDisplayString.replace(/[^0-9\.]+/g, ""));
+          superchatTotals[videoIndex] += superchatAmount;
         }
+      });
+
+      document.getElementById(`video-superchat-total-${videoIndex + 1}`).innerText = superchatTotals[videoIndex].toFixed(2);
+
+      if (nextPageToken !== nextPageTokens[videoIndex]) {
+        nextPageTokens[videoIndex] = nextPageToken;
+        listChatMessages(videoIndex, nextPageToken);
+      }
+
+    }).catch(error => console.error('Error getting live chat data:', error));
+  };
+
+  let videos = [];
+
+  updateInterval = setInterval(() => {
+    gapi.client.youtube.videos.list({
+      id: videoIds.join(','),
+      part: 'liveStreamingDetails,snippet,statistics'
+    }).then(response => {
+      videos = response.result.items;
+
+      const totalConcurrentViewers = videos.reduce((total, video) => {
+        return total + (parseInt(video.liveStreamingDetails.concurrentViewers, 10) || 0);
+      }, 0);
+
+      videos.forEach((video, index) => {
+        listChatMessages(index, nextPageTokens[index]);
+
+        const views = parseInt(video.statistics.viewCount, 10);
+        const concurrentViewers = parseInt(video.liveStreamingDetails.concurrentViewers, 10) || 0;
+        const livePercentage = ((concurrentViewers / totalConcurrentViewers) * 100).toFixed(2);
+
+        document.getElementById(`video-title-${index + 1}`).innerText = video.snippet.title;
+        document.getElementById(`video-views-${index + 1}`).innerText = views.toLocaleString();
+        document.getElementById(`video-concurrent-viewers-${index + 1}`).innerText = concurrentViewers.toLocaleString();
+        document.getElementById(`video-percentage-${index + 1}`).innerText = livePercentage;
+
+        if (charts[index] === undefined) {
+          const ctx = document.getElementById(`video-chart-${index + 1}`).getContext('2d');
+          charts[index] = createPieChart(ctx, videos.map(video => video.snippet.title));
+        }
+      });
+
+      const livePercentages = videos.map(video => {
+        const concurrentViewers = parseInt(video.liveStreamingDetails.concurrentViewers, 10) || 0;
+        return ((concurrentViewers / totalConcurrentViewers) * 100).toFixed(2);
+      });
+
+      charts.forEach((chart, index) => {
+        updatePieChart(chart, livePercentages);
+      });
+
+    }).catch(error => console.error('Error getting video data:', error));
+  }, 5000);
+}
+
     </script>
 </head>
 
 <body onload="onClientLoad()">
     <div class="container">
         <button id="reset-btn" class="btn btn-outline-danger reset-button d-none" onclick="resetComparison()">Reset</button>
-        <h1 class="text-center my-5">YouTube Live Stream View Comparison</h1>
+        <h1 class="text-center my-5">Podcast Wars 2023 Fight Companion</h1>
         <form id="video-form" class="mb-4">
             <div class="row">
                 <div class="col-md-3">
@@ -194,14 +249,16 @@
             <button type="submit" class="btn btn-primary mt-3">Compare Streams</button>
         </form>
     </div>
-    <div class="d-flex flex-wrap justify-content-around align-items-center">
+    <div class="d-flex flex-wrap justify-content-center align-items-center">
+
         <div>
             <div id="video-card-1" class="card rounded shadow d-none">
                 <div class="card-body d-flex flex-column">
                     <h4 class="card-title" id="video-title-1">Video 1 Title</h4>
+                    <p class="card-text">Superchat Total: $<span id="video-superchat-total-1">0</span></p>
                     <p class="card-text">Total Views: <span id="video-views-1">0</span></p>
                     <p class="card-text">Live Viewers: <span id="video-concurrent-viewers-1">0</span></p>
-                    <p class="card-text">Percentage: <span id="video-percentage-1">0</span>%</p>
+                    <p class="card-text">Live Percentage: <span id="video-percentage-1">0</span>%</p>
                     <div class="chart-container mt-auto">
                         <canvas id="video-chart-1"></canvas>
                     </div>
@@ -213,9 +270,10 @@
             <div id="video-card-2" class="card rounded shadow d-none">
                 <div class="card-body d-flex flex-column">
                     <h4 class="card-title" id="video-title-2">Video 2 Title</h4>
+                    <p class="card-text">Superchat Total: $<span id="video-superchat-total-2">0</span></p>
                     <p class="card-text">Total Views: <span id="video-views-2">0</span></p>
                     <p class="card-text">Live Viewers: <span id="video-concurrent-viewers-2">0</span></p>
-                    <p class="card-text">Percentage: <span id="video-percentage-2">0</span>%</p>
+                    <p class="card-text">Live Percentage: <span id="video-percentage-2">0</span>%</p>
                     <div class="chart-container mt-auto">
                         <canvas id="video-chart-2"></canvas>
                     </div>
@@ -227,9 +285,10 @@
             <div id="video-card-3" class="card rounded shadow d-none">
                 <div class="card-body d-flex flex-column">
                     <h4 class="card-title" id="video-title-3">Video 3 Title</h4>
+                    <p class="card-text">Superchat Total: $<span id="video-superchat-total-3">0</span></p>
                     <p class="card-text">Total Views: <span id="video-views-3">0</span></p>
                     <p class="card-text">Live Viewers: <span id="video-concurrent-viewers-3">0</span></p>
-                    <p class="card-text">Percentage: <span id="video-percentage-3">0</span>%</p>
+                    <p class="card-text">Live Percentage: <span id="video-percentage-3">0</span>%</p>
                     <div class="chart-container mt-auto">
                         <canvas id="video-chart-3"></canvas>
                     </div>
@@ -241,9 +300,10 @@
             <div id="video-card-4" class="card rounded shadow d-none">
                 <div class="card-body d-flex flex-column">
                     <h4 class="card-title" id="video-title-4">Video 4 Title</h4>
+                    <p class="card-text">Superchat Total: $<span id="video-superchat-total-4">0</span></p>
                     <p class="card-text">Total Views: <span id="video-views-4">0</span></p>
                     <p class="card-text">Live Viewers: <span id="video-concurrent-viewers-4">0</span></p>
-                    <p class="card-text">Percentage: <span id="video-percentage-4">0</span>%</p>
+                    <p class="card-text">Live Percentage: <span id="video-percentage-4">0</span>%</p>
                     <div class="chart-container mt-auto">
                         <canvas id="video-chart-4"></canvas>
                     </div>
