@@ -1,190 +1,258 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
-  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-  <script src="https://apis.google.com/js/api.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body {
-      background-color: #dddddd;
-    }
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background-color: #dddddd;
+        }
 
-    .card {
-      height: 100%;
-    }
+        .card {
+            height: 100%;
+            max-width: 360px;
+        }
 
-    .chart-container {
-      width: 100%;
-      height: 50%;
-    }
-    .reset-button {
-    position: fixed;
-    top: 15px;
-    right: 15px;
-    z-index: 1000;
-  }
-  </style>
-  
-  
-<script>
-    let chart1, chart2;
-  
-    function onClientLoad() {
-      gapi.load('client', initClient);
-    }
-  
-    function initClient() {
-      gapi.client.init({
-        apiKey: 'AIzaSyB2E9qxwpsLkA9CGm-5U65bselwI77dLBA',
-        discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/youtube/v3/rest']
-      }).then(() => {
-        document.getElementById('video-form').addEventListener('submit', function(event) {
-          event.preventDefault();
-  
-          const videoId1 = document.getElementById('video-id-1').value;
-          const videoId2 = document.getElementById('video-id-2').value;
-  
-          if (videoId1 && videoId2) {
-            compareLiveStreams(videoId1, videoId2);
-            this.classList.add('d-none');
-            document.getElementById('reset-btn').classList.remove('d-none');
-          }
-        });
-      }).catch(error => console.error('Error initializing YouTube Data API:', error));
-    }
-  
-    function resetComparison() {
-      clearInterval(updateInterval);
-      document.getElementById('video-form').classList.remove('d-none');
-      document.getElementById('reset-btn').classList.add('d-none');
-      document.getElementById('video-title-1').innerText = 'Video 1 Title';
-      document.getElementById('video-title-2').innerText = 'Video 2 Title';
-      document.getElementById('video-views-1').innerText = '0';
-      document.getElementById('video-views-2').innerText = '0';
-      document.getElementById('video-percentage-1').innerText = '0';
-      document.getElementById('video-percentage-2').innerText = '0';
-      chart1.destroy();
-      chart2.destroy();
-      chart1 = null;
-      chart2 = null;
-    }
-  
-    let updateInterval;
-  
-    function compareLiveStreams(videoId1, videoId2) {
-      updateInterval = setInterval(() => {
-        gapi.client.youtube.videos.list({
-          id: `${videoId1},${videoId2}`,
-          part: 'liveStreamingDetails,snippet,statistics'
-        }).then(response => {
-          const videos = response.result.items;
-  
-          const video1 = videos.find(video => video.id === videoId1);
-          const video2 = videos.find(video => video.id === videoId2);
-  
-          const views1 = parseInt(video1.statistics.viewCount, 10);
-          const views2 = parseInt(video2.statistics.viewCount, 10);
-  
-          const totalViews = views1 + views2;
-          const percentage1 = ((views1 / totalViews) * 100).toFixed(2);
-          const percentage2 = ((views2 / totalViews) * 100).toFixed(2);
-  
-          document.getElementById('video-title-1').innerText = video1.snippet.title;
-          document.getElementById('video-title-2').innerText = video2.snippet.title;
-          document.getElementById('video-views-1').innerText = views1.toLocaleString();
-          document.getElementById('video-views-2').innerText = views2.toLocaleString();
-          document.getElementById('video-percentage-1').innerText = percentage1;
-          document.getElementById('video-percentage-2').innerText = percentage2;
-  
-          if (!chart1) {
-            const ctx1 = document.getElementById('video-chart-1').getContext('2d');
-            chart1 = createPieChart(ctx1, video1.snippet.title, video2.snippet.title);
-          }
-         if (!chart2) {
-    const ctx2 = document.getElementById('video-chart-2').getContext('2d');
-    chart2 = createPieChart(ctx2, video2.snippet.title, video1.snippet.title);
-  }
-  
-  updatePieChart(chart1, percentage1);
-  updatePieChart(chart2, percentage2);
-  }).catch(error => console.error('Error getting video data:', error));
-  }, 10000);
-  }
-  
-  function createPieChart(ctx, videoTitle1, videoTitle2) {
-    return new Chart(ctx, {
-      type: 'pie',
-      data: {
-        labels: [videoTitle1, videoTitle2],
-        datasets: [{
-          data: [0, 100],
-          backgroundColor: ['#007bff', '#cccccc'],
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-      }
-    });
-  }
-  
-  function updatePieChart(chart, percentage) {
-    chart.data.datasets[0].data = [percentage, 100 - percentage];
-    chart.update();
-  }
-  </script>
-  
+        .chart-container {
+            width: 100%;
+            height: 50%;
+        }
+
+        .reset-button {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            z-index: 1000;
+        }
+
+        .video-iframe {
+            width: 100%;
+            height: 0;
+            padding-bottom: 56.25%;
+            /* 16:9 Aspect Ratio */
+            position: relative;
+        }
+
+        .video-iframe iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+    <script>
+        let charts = [];
+
+        function onClientLoad() {
+            gapi.load('client', initClient);
+        }
+
+        function initClient() {
+            gapi.client.init({
+                apiKey: 'AIzaSyB2E9qxwpsLkA9CGm-5U65bselwI77dLBA',
+                discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/youtube/v3/rest']
+            }).then(() => {
+                document.getElementById('video-form').addEventListener('submit', function(event) {
+                    event.preventDefault();
+
+                    const videoIds = [
+                        document.getElementById('video-id-1').value,
+                        document.getElementById('video-id-2').value,
+                        document.getElementById('video-id-3').value,
+                        document.getElementById('video-id-4').value,
+                    ];
+
+                    const activeVideoIds = videoIds.filter(id => id !== '');
+
+                    if (activeVideoIds.length >= 2) {
+                        compareLiveStreams(activeVideoIds);
+                        this.classList.add('d-none');
+                        document.getElementById('reset-btn').classList.remove('d-none');
+                    }
+                });
+            }).catch(error => console.error('Error initializing YouTube Data API:', error));
+        }
+
+        function createPieChart(context, labels) {
+            return new Chart(context, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: labels.map(() => 100 / labels.length),
+                        backgroundColor: ['#007bff', '#cccccc', '#28a745', '#ffc107'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+
+        function resetComparison() {
+            clearInterval(updateInterval);
+            document.getElementById('video-form').classList.remove('d-none');
+            document.getElementById('reset-btn').classList.add('d-none');
+
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById(`video-title-${i}`).innerText = `Video ${i} Title`;
+                document.getElementById(`video-views-${i}`).innerText = '0';
+                document.getElementById(`video-concurrent-viewers-${i}`).innerText = '0';
+                document.getElementById(`video-percentage-${i}`).innerText = '0';
+                document.getElementById(`video-iframe-${i}`).innerHTML = '';
+                document.getElementById(`video-card-${i}`).classList.add('d-none');
+            }
+
+            charts.forEach(chart => chart.destroy());
+            charts = [];
+        }
+
+        let updateInterval;
+
+        function updatePieChart(chart, data) {
+            chart.data.datasets[0].data = data;
+            chart.update();
+        }
+
+        function compareLiveStreams(videoIds) {
+            videoIds.forEach((videoId, index) => {
+                document.getElementById(`video-iframe-${index + 1}`).innerHTML = `<iframe src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe>`;
+                document.getElementById(`video-card-${index + 1}`).classList.remove('d-none');
+            });
+
+            updateInterval = setInterval(() => {
+                gapi.client.youtube.videos.list({
+                    id: videoIds.join(','),
+                    part: 'liveStreamingDetails,snippet,statistics'
+                }).then(response => {
+                    const videos = response.result.items;
+
+                    const totalConcurrentViewers = videos.reduce((total, video) => {
+                        return total + (parseInt(video.liveStreamingDetails.concurrentViewers, 10) || 0);
+                    }, 0);
+
+                    videos.forEach((video, index) => {
+                        const views = parseInt(video.statistics.viewCount, 10);
+                        const concurrentViewers = parseInt(video.liveStreamingDetails.concurrentViewers, 10) || 0;
+                        const livePercentage = ((concurrentViewers / totalConcurrentViewers) * 100).toFixed(2);
+
+                        document.getElementById(`video-title-${index + 1}`).innerText = video.snippet.title;
+                        document.getElementById(`video-views-${index + 1}`).innerText = views.toLocaleString();
+                        document.getElementById(`video-concurrent-viewers-${index + 1}`).innerText = concurrentViewers.toLocaleString();
+                        document.getElementById(`video-percentage-${index + 1}`).innerText = livePercentage;
+
+                        if (charts[index] === undefined) {
+                            const ctx = document.getElementById(`video-chart-${index + 1}`).getContext('2d');
+                            charts[index] = createPieChart(ctx, videos.map(video => video.snippet.title));
+                        }
+                    });
+
+                    const livePercentages = videos.map(video => {
+                        const concurrentViewers = parseInt(video.liveStreamingDetails.concurrentViewers, 10) || 0;
+                        return ((concurrentViewers / totalConcurrentViewers) * 100).toFixed(2);
+                    });
+
+                    charts.forEach(chart => updatePieChart(chart, livePercentages));
+
+                }).catch(error => console.error('Error getting video data:', error));
+            }, 10000);
+        }
+    </script>
 </head>
+
 <body onload="onClientLoad()">
     <div class="container">
         <button id="reset-btn" class="btn btn-outline-danger reset-button d-none" onclick="resetComparison()">Reset</button>
-      <h1 class="text-center my-5">YouTube Live Stream View Comparison</h1>
-      <form id="video-form" class="mb-4">
-        <div class="row">
-          <div class="col-md-6">
-            <label for="video-id-1">Stream 1 Video ID:</label>
-            <input type="text" class="form-control" id="video-id-1" required>
-          </div>
-          <div class="col-md-6">
-            <label for="video-id-2">Stream 2 Video ID:</label>
-            <input type="text" class="form-control" id="video-id-2" required>
-          </div>
-        </div>
-        <button type="submit" class="btn btn-primary mt-3">Compare Streams</button>
-      </form>
-      <div class="row">
-        <div class="col-md-6">
-          <div class="card rounded shadow">
-            <div class="card-body d-flex flex-column">
-              <h4 class="card-title" id="video-title-1">Video 1 Title</h4>
-              <p class="card-text">Views: <span id="video-views-1">0</span></p>
-              <p class="card-text">Percentage: <span id="video-percentage-1">0</span>%</p>
-              <div class="chart-container mt-auto">
-                <canvas id="video-chart-1"></canvas>
-              </div>
+        <h1 class="text-center my-5">YouTube Live Stream View Comparison</h1>
+        <form id="video-form" class="mb-4">
+            <div class="row">
+                <div class="col-md-3">
+                    <label for="video-id-1">Stream 1 Video ID:</label>
+                    <input type="text" class="form-control" id="video-id-1" required>
+                </div>
+                <div class="col-md-3">
+                    <label for="video-id-2">Stream 2 Video ID:</label>
+                    <input type="text" class="form-control" id="video-id-2" required>
+                </div>
+                <div class="col-md-3">
+                    <label for="video-id-3">Stream 3 Video ID (optional):</label>
+                    <input type="text" class="form-control" id="video-id-3">
+                </div>
+                <div class="col-md-3">
+                    <label for="video-id-4">Stream 4 Video ID (optional):</label>
+                    <input type="text" class="form-control" id="video-id-4">
+                </div>
             </div>
-          </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card rounded shadow">
-            <div class="card-body d-flex flex-column">
-              <h4 class="card-title" id="video-title-2">Video 2 Title</h4>
-              <p class="card-text">Views: <span id="video-views-2">0</span></p>
-              <p class="card-text">Percentage: <span id="video-percentage-2">0</span>%</p>
-              <div class="chart-container mt-auto">
-                <canvas id="video-chart-2"></canvas>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+            <button type="submit" class="btn btn-primary mt-3">Compare Streams</button>
+        </form>
     </div>
-    
-  </body>
-  
-</html>
+    <div class="d-flex flex-wrap justify-content-around align-items-center">
+        <div>
+            <div id="video-card-1" class="card rounded shadow d-none">
+                <div class="card-body d-flex flex-column">
+                    <h4 class="card-title" id="video-title-1">Video 1 Title</h4>
+                    <p class="card-text">Total Views: <span id="video-views-1">0</span></p>
+                    <p class="card-text">Live Viewers: <span id="video-concurrent-viewers-1">0</span></p>
+                    <p class="card-text">Percentage: <span id="video-percentage-1">0</span>%</p>
+                    <div class="chart-container mt-auto">
+                        <canvas id="video-chart-1"></canvas>
+                    </div>
+                    <div id="video-iframe-1" class="video-iframe mt-3"></div>
+                </div>
+            </div>
+        </div>
+        <div>
+            <div id="video-card-2" class="card rounded shadow d-none">
+                <div class="card-body d-flex flex-column">
+                    <h4 class="card-title" id="video-title-2">Video 2 Title</h4>
+                    <p class="card-text">Total Views: <span id="video-views-2">0</span></p>
+                    <p class="card-text">Live Viewers: <span id="video-concurrent-viewers-2">0</span></p>
+                    <p class="card-text">Percentage: <span id="video-percentage-2">0</span>%</p>
+                    <div class="chart-container mt-auto">
+                        <canvas id="video-chart-2"></canvas>
+                    </div>
+                    <div id="video-iframe-2" class="video-iframe mt-3"></div>
+                </div>
+            </div>
+        </div>
+        <div>
+            <div id="video-card-3" class="card rounded shadow d-none">
+                <div class="card-body d-flex flex-column">
+                    <h4 class="card-title" id="video-title-3">Video 3 Title</h4>
+                    <p class="card-text">Total Views: <span id="video-views-3">0</span></p>
+                    <p class="card-text">Live Viewers: <span id="video-concurrent-viewers-3">0</span></p>
+                    <p class="card-text">Percentage: <span id="video-percentage-3">0</span>%</p>
+                    <div class="chart-container mt-auto">
+                        <canvas id="video-chart-3"></canvas>
+                    </div>
+                    <div id="video-iframe-3" class="video-iframe mt-3"></div>
+                </div>
+            </div>
+        </div>
+        <div>
+            <div id="video-card-4" class="card rounded shadow d-none">
+                <div class="card-body d-flex flex-column">
+                    <h4 class="card-title" id="video-title-4">Video 4 Title</h4>
+                    <p class="card-text">Total Views: <span id="video-views-4">0</span></p>
+                    <p class="card-text">Live Viewers: <span id="video-concurrent-viewers-4">0</span></p>
+                    <p class="card-text">Percentage: <span id="video-percentage-4">0</span>%</p>
+                    <div class="chart-container mt-auto">
+                        <canvas id="video-chart-4"></canvas>
+                    </div>
+                    <div id="video-iframe-4" class="video-iframe mt-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-  
+</body>
+
+</html>
