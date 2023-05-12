@@ -158,25 +158,23 @@ function createPieChart(context, labels, data) {
         }
 
         function compareLiveStreams(videoIds) {
-  videoIds.forEach((videoId, index) => {
-    document.getElementById(`video-iframe-${index + 1}`).innerHTML = `<iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1" frameborder="0" allowfullscreen></iframe>`;
-    document.getElementById(`video-card-${index + 1}`).classList.remove('d-none');
-    document.getElementById(`video-iframe-${index + 1}`).innerHTML = `<iframe id="iframe-${index + 1}" src="https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1" frameborder="0" allowfullscreen></iframe>`;
-    document.getElementById(`video-card-${index + 1}`).addEventListener('click', function() {
-    const iframe = document.getElementById(`iframe-${index + 1}`);
-    iframe.src = iframe.src.replace('&mute=1', '&mute=0');
-    
-});
+    videoIds.forEach((videoId, index) => {
+        document.getElementById(`video-iframe-${index + 1}`).innerHTML = `<iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1" frameborder="0" allowfullscreen></iframe>`;
+        document.getElementById(`video-card-${index + 1}`).classList.remove('d-none');
+        document.getElementById(`video-iframe-${index + 1}`).innerHTML = `<iframe id="iframe-${index + 1}" src="https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1" frameborder="0" allowfullscreen></iframe>`;
+        document.getElementById(`video-card-${index + 1}`).addEventListener('click', function() {
+            const iframe = document.getElementById(`iframe-${index + 1}`);
+            iframe.src = iframe.src.replace('&mute=1', '&mute=0');
+        });
+    });
 
-  });
+    let nextPageTokens = Array(videoIds.length).fill(null);
+    const superchatTotals = Array(videoIds.length).fill(0);
 
-  let nextPageTokens = Array(videoIds.length).fill(null);
-const superchatTotals = Array(videoIds.length).fill(0);
+    let highestSuperchatAmounts = Array(videoIds.length).fill(0);
+    let highestSuperchatUsers = Array(videoIds.length).fill("");
 
-let highestSuperchatAmounts = Array(videoIds.length).fill(0);
-let highestSuperchatUsers = Array(videoIds.length).fill("");
-
-let exchangeRates = {};
+    let exchangeRates = {};
 
 const fetchExchangeRate = async (currency) => {
   if (exchangeRates[currency]) {
@@ -241,50 +239,52 @@ const listChatMessages = (videoIndex, pageToken) => {
 
 
 
-  let videos = [];
+let videos = [];
 
-  updateInterval = setInterval(() => {
+updateInterval = setInterval(() => {
     gapi.client.youtube.videos.list({
-      id: videoIds.join(','),
-      part: 'liveStreamingDetails,snippet,statistics'
+        id: videoIds.join(','),
+        part: 'liveStreamingDetails,snippet,statistics'
     }).then(response => {
-      videos = response.result.items;
+        videos = response.result.items;
 
-      const totalConcurrentViewers = videos.reduce((total, video) => {
-        return total + (parseInt(video.liveStreamingDetails.concurrentViewers, 10) || 0);
-      }, 0);
+        const totalConcurrentViewers = videos.reduce((total, video) => {
+            return total + (parseInt(video.liveStreamingDetails.concurrentViewers, 10) || 0);
+        }, 0);
 
-      videos.forEach((video, index) => {
-  listChatMessages(index, nextPageTokens[index]);
+        videos.forEach((video, index) => {
+            listChatMessages(index, nextPageTokens[index]);
 
-  const views = parseInt(video.statistics.viewCount, 10);
-  const likes = parseInt(video.statistics.likeCount, 10);
-  const concurrentViewers = parseInt(video.liveStreamingDetails.concurrentViewers, 10) || 0;
-  const livePercentage = ((concurrentViewers / totalConcurrentViewers) * 100).toFixed(2);
-
-  document.getElementById(`video-title-${index + 1}`).innerText = video.snippet.title;
-  document.getElementById(`video-views-${index + 1}`).innerText = views.toLocaleString();
-  document.getElementById(`video-likes-${index + 1}`).innerText = likes.toLocaleString();
-  document.getElementById(`video-concurrent-viewers-${index + 1}`).innerText = concurrentViewers.toLocaleString();
-  document.getElementById(`video-percentage-${index + 1}`).innerText = livePercentage;
-
-        if (index === 0) { // Only create and update chart for the first video
-          const ctx = document.getElementById(`video-chart-1`).getContext('2d');
-          if (charts[0] === undefined) {
-            charts[0] = createPieChart(ctx, videos.map(video => video.snippet.title));
-          }
-
-          const livePercentages = videos.map(video => {
+            const views = parseInt(video.statistics.viewCount, 10);
+            const likes = parseInt(video.statistics.likeCount, 10);
             const concurrentViewers = parseInt(video.liveStreamingDetails.concurrentViewers, 10) || 0;
-            return ((concurrentViewers / totalConcurrentViewers) * 100).toFixed(2);
-          });
+            const livePercentage = ((concurrentViewers / totalConcurrentViewers) * 100).toFixed(2);
 
-          updatePieChart(charts[0], livePercentages);
-        }
-      });
+            document.getElementById(`video-title-${index + 1}`).innerText = video.snippet.title; // Update video titles here
+            document.getElementById(`video-views-${index + 1}`).innerText = views.toLocaleString();
+            document.getElementById(`video-likes-${index + 1}`).innerText = likes.toLocaleString();
+            document.getElementById(`video-concurrent-viewers-${index + 1}`).innerText = concurrentViewers.toLocaleString();
+            document.getElementById(`video-percentage-${index + 1}`).innerText = livePercentage;
+
+            if (index === 0) { // Only create and update chart for the first video
+                const ctx = document.getElementById(`video-chart-1`).getContext('2d');
+                if (charts[0] === undefined) {
+                    charts[0] = createPieChart(ctx, videos.map(video => video.snippet.title));
+                }
+
+                const livePercentages = videos.map(video => {
+                    const concurrentViewers = parseInt(video.liveStreamingDetails.concurrentViewers, 10) || 0;
+                    return ((concurrentViewers / totalConcurrentViewers) * 100).toFixed(2);
+                });
+
+                updatePieChart(charts[0], livePercentages);
+            }
+        });
 
     }).catch(error => console.error('Error getting video data:', error));
-  }, 45000);
+}, 45000);
+
+
 }
 function sendToDiscord(message) {
     fetch('https://discord.com/api/webhooks/1105650534901354526/zJ0hiGe9MmB1HlZy9n4O6a0Ua7vZ8eaCXtrizoUa-EumSBoo2tD1Srt72769m6gtCs7H', {
@@ -334,8 +334,6 @@ function updateTime() {
 }
 
 setInterval(updateTime, 1000); // update time every second
-
-
 
 
 
