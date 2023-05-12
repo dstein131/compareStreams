@@ -11,6 +11,12 @@
     <script src="https://www.youtube.com/iframe_api"></script>
 
     <style>
+            .top-superchat-users {
+        min-height: 127px;
+        border: 1px solid #ccc;
+        padding: 10px;
+        overflow: auto;
+    }
         
         .text-truncate {
     white-space: nowrap;
@@ -87,7 +93,7 @@
 
         function initClient() {
             gapi.client.init({
-                apiKey: 'AIzaSyB2E9qxwpsLkA9CGm-5U65bselwI77dLBA',
+                apiKey: 'AIzaSyCavuo49y58vKYZM1T-12bJRUqcAu3SuHc',
                 discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/youtube/v3/rest']
             }).then(() => {
                 document.getElementById('video-form').addEventListener('submit', function(event) {
@@ -198,6 +204,8 @@ const fetchExchangeRate = async (currency) => {
   }
 };
 
+let topSuperchats = Array(videoIds.length).fill([]);
+
 const listChatMessages = (videoIndex, pageToken) => {
   gapi.client.youtube.liveChatMessages.list({
     liveChatId: videos[videoIndex].liveStreamingDetails.activeLiveChatId,
@@ -217,17 +225,13 @@ const listChatMessages = (videoIndex, pageToken) => {
 
         superchatTotals[videoIndex] += amountInUsd;
 
-        if (amountInUsd > highestSuperchatAmounts[videoIndex]) {
-          highestSuperchatAmounts[videoIndex] = amountInUsd;
-          highestSuperchatUsers[videoIndex] = message.authorDetails.displayName;
-        }
+        topSuperchats[videoIndex] = [...topSuperchats[videoIndex], {user: message.authorDetails.displayName, amount: amountInUsd}].sort((a, b) => b.amount - a.amount).slice(0, 5);
       }
     }
 
     document.getElementById(`video-superchat-total-${videoIndex + 1}`).innerText = superchatTotals[videoIndex].toFixed(2);
-    document.getElementById(`video-highest-superchat-amount-${videoIndex + 1}`).innerText = highestSuperchatAmounts[videoIndex].toFixed(2);
-    document.getElementById(`video-highest-superchat-user-${videoIndex + 1}`).innerText = highestSuperchatUsers[videoIndex];
-
+    document.getElementById(`video-top-superchat-users-${videoIndex + 1}`).innerText = topSuperchats[videoIndex].map((chat, index) => `${index+1}. ${chat.user} - $${chat.amount.toFixed(2)}`).join('\n');
+    
     if (nextPageToken !== nextPageTokens[videoIndex]) {
       nextPageTokens[videoIndex] = nextPageToken;
       listChatMessages(videoIndex, nextPageToken);
@@ -235,6 +239,7 @@ const listChatMessages = (videoIndex, pageToken) => {
 
   }).catch(error => console.error('Error getting live chat data:', error));
 };
+
 
 
 
@@ -310,16 +315,16 @@ function prepareDataAndSend() {
             const likes = document.getElementById(`video-likes-${i}`).innerText;
             const views = document.getElementById(`video-views-${i}`).innerText;
             const livePercentage = document.getElementById(`video-percentage-${i}`).innerText;
-            const highestSuperchatAmount = document.getElementById(`video-highest-superchat-amount-${i}`).innerText;
-            const highestSuperchatUser = document.getElementById(`video-highest-superchat-user-${i}`).innerText;
+            const topSuperchatUsers = document.getElementById(`video-top-superchat-users-${i}`).innerText;
             let date = new Date();
             let formattedDate = date.toLocaleString('en-US', { timeZoneName: 'short' });
 
-            message += `Title: ${title}, Live Viewers: ${liveViewers} (${livePercentage}%), Superchat Total: $${superchatTotal}, Likes: ${likes}, Views: ${views}, Highest Superchat: $${highestSuperchatAmount} by ${highestSuperchatUser}, Data as of: ${formattedDate} (${timeZone})\n\n`;
+            message += `Title: ${title}, Live Viewers: ${liveViewers} (${livePercentage}%), Superchat Total: $${superchatTotal}, Likes: ${likes}, Views: ${views}, Top Superchat Users: ${topSuperchatUsers}, Data as of: ${formattedDate} (${timeZone})\n\n`;
         }
     }
     sendToDiscord(message);
 }
+
 
 setInterval(prepareDataAndSend, 15 * 60 * 1000); // 15 minutes in milliseconds
 
@@ -334,10 +339,6 @@ function updateTime() {
 }
 
 setInterval(updateTime, 1000); // update time every second
-
-
-
-
 
     </script>
 </head>
@@ -384,8 +385,9 @@ setInterval(updateTime, 1000); // update time every second
                 <div class="card-body d-flex flex-column">
                     <h4 class="card-title text-truncate" id="video-title-1">Video 1 Title</h4>
                     <p class="card-text">Superchat Total: $<span id="video-superchat-total-1">0</span></p>
-                    <p class="card-text">Highest Superchat: $<span id="video-highest-superchat-amount-1">0</span></p>
-                    <p class="card-text">High Superchat User: <span id="video-highest-superchat-user-1"></span></p>
+                    <p class="card-text d-none">Highest Superchat: $<span id="video-highest-superchat-amount-1">0</span></p>
+                    <p class="card-text d-none">High Superchat User: <span id="video-highest-superchat-user-1"></span></p>
+                    <pre id="video-top-superchat-users-1"  class="top-superchat-users"></pre>
                     <p class="card-text">Total Views: <span id="video-views-1">0</span></p>
                     <p class="card-text">Likes: <span id="video-likes-1">0</span></p>
                     <p class="card-text">Live Viewers: <span id="video-concurrent-viewers-1">0</span></p>
@@ -400,8 +402,9 @@ setInterval(updateTime, 1000); // update time every second
                 <div class="card-body d-flex flex-column">
                     <h4 class="card-title text-truncate" id="video-title-2">Video 2 Title</h4>
                     <p class="card-text">Superchat Total: $<span id="video-superchat-total-2">0</span></p>
-                    <p class="card-text">Highest Superchat: $<span id="video-highest-superchat-amount-2">0</span></p>
-                    <p class="card-text">High Superchat User: <span id="video-highest-superchat-user-2"></span></p>
+                    <p class="card-text d-none">Highest Superchat: $<span id="video-highest-superchat-amount-2">0</span></p>
+                    <p class="card-text d-none">High Superchat User: <span id="video-highest-superchat-user-2"></span></p>
+                    <pre id="video-top-superchat-users-2"  class="top-superchat-users"></pre>
                     <p class="card-text">Total Views: <span id="video-views-2">0</span></p>
                     <p class="card-text">Likes: <span id="video-likes-2">0</span></p>
                     <p class="card-text">Live Viewers: <span id="video-concurrent-viewers-2">0</span></p>
@@ -416,8 +419,9 @@ setInterval(updateTime, 1000); // update time every second
                 <div class="card-body d-flex flex-column">
                     <h4 class="card-title text-truncate" id="video-title-3">Video 3 Title</h4>
                     <p class="card-text">Superchat Total: $<span id="video-superchat-total-3">0</span></p>
-                    <p class="card-text">Highest Superchat: $<span id="video-highest-superchat-amount-3">0</span></p>
-                    <p class="card-text">High Superchat User: <span id="video-highest-superchat-user-3"></span></p>
+                    <p class="card-text d-none">Highest Superchat: $<span id="video-highest-superchat-amount-3">0</span></p>
+                    <p class="card-text d-none">High Superchat User: <span id="video-highest-superchat-user-3"></span></p>
+                    <pre id="video-top-superchat-users-3"  class="top-superchat-users"></pre>
                     <p class="card-text">Total Views: <span id="video-views-3">0</span></p>
                     <p class="card-text">Likes: <span id="video-likes-3">0</span></p>
                     
@@ -433,8 +437,9 @@ setInterval(updateTime, 1000); // update time every second
                 <div class="card-body d-flex flex-column">
                     <h4 class="card-title text-truncate" id="video-title-4">Video 4 Title</h4>
                     <p class="card-text">Superchat Total: $<span id="video-superchat-total-4">0</span></p>
-                    <p class="card-text">Highest Superchat: $<span id="video-highest-superchat-amount-4">0</span></p>
-                    <p class="card-text">High Superchat User: <span id="video-highest-superchat-user-4"></span></p>
+                    <p class="card-text d-none">Highest Superchat: $<span id="video-highest-superchat-amount-4">0</span></p>
+                    <p class="card-text d-none">High Superchat User: <span id="video-highest-superchat-user-4"></span></p>
+                    <pre id="video-top-superchat-users-4"  class="top-superchat-users"></pre>
                     <p class="card-text">Total Views: <span id="video-views-4">0</span></p>
                     <p class="card-text">Likes: <span id="video-likes-4">0</span></p>
                     <p class="card-text">Live Viewers: <span id="video-concurrent-viewers-4">0</span></p>
