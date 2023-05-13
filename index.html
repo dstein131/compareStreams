@@ -281,6 +281,8 @@ updateInterval = setInterval(() => {
             document.getElementById(`video-concurrent-viewers-${index + 1}`).innerText = concurrentViewers.toLocaleString();
             document.getElementById(`video-percentage-${index + 1}`).innerText = livePercentage;
 
+            
+
             if (index === 0) { // Only create and update chart for the first video
                 const ctx = document.getElementById(`video-chart-1`).getContext('2d');
                 if (charts[0] === undefined) {
