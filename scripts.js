@@ -4,6 +4,19 @@ function onClientLoad() {
     gapi.load('client', initClient);
 }
 
+let video1SuperChatTotal = 0;
+let video1TopSuperchatUsers = [];
+let video2SuperChatTotal = 0;
+let video2TopSuperchatUsers = [];
+let video3SuperChatTotal = 0;
+let video3TopSuperchatUsers = [];
+let video4SuperChatTotal = 0;
+let video4TopSuperchatUsers = [];
+
+const videoSuperChatTotals = [];
+const videoTopSuperChatUsers = []
+
+
 let apiKeys = ['AIzaSyASShv8zh_tbj6m4uhcn9olHBZCihKABXQ', 'AIzaSyCavuo49y58vKYZM1T-12bJRUqcAu3SuHc', 'AIzaSyCj3uIPZWn9iqhoG4GvTLGMyC2MKl3gOcM', 'AIzaSyBWvu_9YTf9KPdiBcDh1rewr0Fo6IJAp14'];
 let currentIndex = 0;
 
@@ -12,7 +25,6 @@ function getNextApiKey() {
     currentIndex = (currentIndex + 1) % apiKeys.length; // cycle through array
     return key;
 }
-
 
 let activeVideoIds = []; // Make this a global variable
 
@@ -70,8 +82,6 @@ function createPieChart(context, labels, data) {
         }
     });
 }
-
-
 
 function resetComparison() {
     clearInterval(updateInterval);
@@ -169,8 +179,18 @@ function compareLiveStreams(videoIds) {
 
             prepareDataAndSend()
 
-            document.getElementById(`video-superchat-total-${videoIndex + 1}`).innerText = superchatTotals[videoIndex].toFixed(2);
-            document.getElementById(`video-top-superchat-users-${videoIndex + 1}`).innerText = topSuperchats[videoIndex].map((chat, index) => `${index+1}. ${chat.user} - $${chat.amount.toFixed(2)}`).join('\n');
+            // document.getElementById(`video-superchat-total-${videoIndex + 1}`).innerText = superchatTotals[videoIndex].toFixed(2);
+            // document.getElementById(`video-top-superchat-users-${videoIndex + 1}`).innerText = topSuperchats[videoIndex].map((chat, index) => `${index+1}. ${chat.user} - $${chat.amount.toFixed(2)}`).join('\n');
+
+            for (let i = 0; i < superchatTotals.length; i++) {
+                videoSuperChatTotals[i] = superchatTotals[i].toFixed(2);
+                videoTopSuperChatUsers[i] = topSuperchats[i].map((chat, index) => `${index+1}. ${chat.user} - $${chat.amount.toFixed(2)}`).join('\n');
+              }
+
+              for (let i = 0; i < videoSuperChatTotals.length; i++) {
+                document.getElementById(`video-superchat-total-${i + 1}`).innerText = videoSuperChatTotals[i];
+                document.getElementById(`video-top-superchat-users-${i + 1}`).innerText = videoTopSuperChatUsers[i];
+              }
 
             if (nextPageToken !== nextPageTokens[videoIndex]) {
                 nextPageTokens[videoIndex] = nextPageToken;
@@ -240,43 +260,39 @@ function compareLiveStreams(videoIds) {
 
 }
 
-function sendToDiscord(message) {
-    fetch('https://discord.com/api/webhooks/1105650534901354526/zJ0hiGe9MmB1HlZy9n4O6a0Ua7vZ8eaCXtrizoUa-EumSBoo2tD1Srt72769m6gtCs7H', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            content: message
-        }),
-    }).catch((error) => console.error('Error:', error));
-}
+
 
 function prepareDataAndSend() {
     let data = [];
     for (let i = 1; i <= 4; i++) {
         const titleElement = document.getElementById(`video-title-${i}`);
+        const channelTitleElement = document.getElementById(`video-channel-title-${i}`);
         const liveViewersElement = document.getElementById(`video-concurrent-viewers-${i}`);
         const likesElement = document.getElementById(`video-likes-${i}`);
         const viewsElement = document.getElementById(`video-views-${i}`);
         const livePercentageElement = document.getElementById(`video-percentage-${i}`);
         const videoId = activeVideoIds[i - 1];
         const superchatTotalElement = document.getElementById(`video-superchat-total-${i}`);
+        const topSuperchatUsersElement = videoTopSuperChatUsers[i];
 
         if (titleElement && liveViewersElement && likesElement && viewsElement && livePercentageElement && superchatTotalElement) {
             data.push({
                 videoId,
                 title: titleElement.innerText,
+                channelTitle: channelTitleElement.innerText,
                 views: viewsElement.innerText,
                 likes: likesElement.innerText,
                 concurrentViewers: liveViewersElement.innerText,
                 superchatTotal: superchatTotalElement.innerText,
-                livePercentage: livePercentageElement.innerText
+                livePercentage: livePercentageElement.innerText,
+                topSuperchatUsers: topSuperchatUsersElement
             });
         } else {
             console.log(`One or more elements not found for video card ${i}`);
         }
     }
+
+    console.log('NEW DATA:', data);
 
     // Filter out videos without concurrent viewers
     data = data.filter(video => parseInt(video.concurrentViewers) > 0);
@@ -290,31 +306,12 @@ function prepareDataAndSend() {
             body: JSON.stringify(data),
         })
         .then(response => response.json()) // Parse the JSON response from the server
-        .then(data => console.log(data.message)) // Log the message from the server
+        .then(data => console.log('THIS IS DATA MESSAGE:', data.message)) // Log the message from the server
         .catch((error) => console.error('Error:', error));
 
-
-
-    let message = "";
-    let timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    for (let video of data) {
-        let date = new Date();
-        let formattedDate = date.toLocaleString('en-US', {
-            timeZoneName: 'short'
-        });
-
-        message += `Title: ${video.title}, Live Viewers: ${video.concurrentViewers} (${video.livePercentage}%), Superchat Total: $${video.superchatTotal}, Likes: ${video.likes}, Views: ${video.views}, Data as of: ${formattedDate} (${timeZone})\n\n`;
-    }
-    // sendToDiscord(message);
 }
 
-
-
-
-
 setInterval(prepareDataAndSend, 5 * 60 * 1000); // 5 minutes in milliseconds
-
-
 
 function updateTime() {
     let date = new Date();
@@ -347,7 +344,6 @@ function getSuperchatTotal(videoId) {
     })
       .then((response) => response.json())
       .then((data) => console.log(data.message))
-
       .catch((error) => console.error('Error:', error));
   }
 

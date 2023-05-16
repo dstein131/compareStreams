@@ -12,6 +12,8 @@ const createLivestreamTable = () => {
         video_concurrent_viewers INTEGER,
         total_super_chat_amount FLOAT,
         video_percentage FLOAT,
+        channel_name TEXT,
+        top_chat_users JSONB,
         timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `;

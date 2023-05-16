@@ -3,7 +3,7 @@ const db = require('./db.js');
 
 const insertLivestreamData = async (data) => {
   console.log(data)
-  const queryText = 'INSERT INTO livestream_data(video_id, video_title, video_views, video_likes, video_concurrent_viewers, total_super_chat_amount, video_percentage) VALUES($1, $2, $3, $4, $5, $6, $7)';
+  const queryText = 'INSERT INTO livestream_data(video_id, video_title, video_views, video_likes, video_concurrent_viewers, total_super_chat_amount, video_percentage, channel_name, top_chat_users) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)';
 
   for (const item of data) {
     // Parse the numerical data, removing commas if necessary
@@ -11,22 +11,17 @@ const insertLivestreamData = async (data) => {
     const likes = parseInt(item.likes.replace(/,/g, ''), 10);
     const concurrentViewers = parseInt(item.concurrentViewers.replace(/,/g, ''), 10);
     let superChatAmount = parseFloat(item.superchatTotal.replace(/,/g, ''));
-
-    // Check if the total superchat amount from the API pull is zero
-    if (superChatAmount === 0) {
-      // Fetch the total superchat amount from the database for the video_id
-      superChatAmount = await getTotalSuperchatAmountByVideoId(item.videoId);
-    }
-
     const livePercentage = parseFloat(item.livePercentage);
+    const topChatUsers = JSON.stringify(item.topChatUsers); // Assuming your data object contains a field called 'topChatUsers'
 
-    const values = [item.videoId, item.title, views, likes, concurrentViewers, superChatAmount, livePercentage];
+    const values = [item.videoId, item.title, views, likes, concurrentViewers, superChatAmount, livePercentage, item.channelName, item.topSuperchatUsers];
       
     // Execute the query
     await db.query(queryText, values);
     console.log('Inserted data successfully for videoId: ', item.videoId);
   }
 };
+
 
 
 const getTotalSuperchatAmountByVideoId = async (videoId) => {
