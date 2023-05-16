@@ -34,7 +34,6 @@
         
                     activeVideoIds = videoIds.filter(id => id !== '');  // Assign to the global variable here
                     console.log(activeVideoIds);  // Add this line after assigning activeVideoIds in the initClient() function
-
         
                     if (activeVideoIds.length >= 2) {
                         compareLiveStreams(activeVideoIds);
@@ -42,10 +41,19 @@
                         document.getElementById('reset-btn').classList.remove('d-none');
                     }
                 });
-            }).catch(error => console.error('Error initializing YouTube Data API:', error));
+            }).catch(error => {
+                console.error('Error initializing YouTube Data API:', error);
+                if (currentIndex < apiKeys.length - 1) {
+                    initClient();  // Reinitialize client with a new API key
+                } else {
+                    console.error('All API keys have exceeded their quota.');
+                }
+            });
+        
             document.getElementById('sendToDiscord').addEventListener('click', prepareDataAndSend);
+            setInterval(initClient, 60 * 1000);  // Reinitialize client every 60 seconds
         }
-
+        
 function createPieChart(context, labels, data) {
     return new Chart(context, {
         type: 'pie',
@@ -241,57 +249,58 @@ function sendToDiscord(message) {
 
 function prepareDataAndSend() {
     let data = [];
-    console.log(data)
-    for (let i = 0; i < activeVideoIds.length; i++) {  // Use the global variable here
-        const titleElement = document.getElementById(`video-title-${i + 1}`);
-        if (titleElement && titleElement.innerText) {
-            const title = titleElement.innerText;
-            const liveViewers = document.getElementById(`video-concurrent-viewers-${i}`).innerText;
-            const likes = document.getElementById(`video-likes-${i}`).innerText;
-            const views = document.getElementById(`video-views-${i}`).innerText;
-            const livePercentage = document.getElementById(`video-percentage-${i}`).innerText;
-            const videoId = activeVideoIds[i - 1];
-            const superchatTotal = document.getElementById(`video-superchat-total-${i}`).innerText;
+    for (let i = 1; i <= 4; i++) {
+        const titleElement = document.getElementById(`video-title-${i}`);
+        const liveViewersElement = document.getElementById(`video-concurrent-viewers-${i}`);
+        const likesElement = document.getElementById(`video-likes-${i}`);
+        const viewsElement = document.getElementById(`video-views-${i}`);
+        const livePercentageElement = document.getElementById(`video-percentage-${i}`);
+        const videoId = activeVideoIds[i - 1];
+        const superchatTotalElement = document.getElementById(`video-superchat-total-${i}`);
+
+        if (titleElement && liveViewersElement && likesElement && viewsElement && livePercentageElement && superchatTotalElement) {
             data.push({
                 videoId,
-                title,
-                views,
-                likes,
-                concurrentViewers: liveViewers,
-                superchatTotal,
-                livePercentage
+                title: titleElement.innerText,
+                views: viewsElement.innerText,
+                likes: likesElement.innerText,
+                concurrentViewers: liveViewersElement.innerText,
+                superchatTotal: superchatTotalElement.innerText,
+                livePercentage: livePercentageElement.innerText
             });
+        } else {
+            console.log(`One or more elements not found for video card ${i}`);
         }
     }
 
+    // Filter out videos without concurrent viewers
+    data = data.filter(video => parseInt(video.concurrentViewers) > 0);
+
+    console.log(data);
     fetch('http://localhost:3000/livestreamData', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify(data),
-    }).catch((error) => console.error('Error:', error));
+    })
+    .then(response => response.json()) // Parse the JSON response from the server
+    .then(data => console.log(data.message)) // Log the message from the server
+    .catch((error) => console.error('Error:', error));
+
+    
 
     let message = "";
     let timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    for (let i = 1; i <= 4; i++) {
-        const titleElement = document.getElementById(`video-title-${i}`);
-        if (titleElement && titleElement.innerText) {
-            const title = titleElement.innerText;
-            const liveViewers = document.getElementById(`video-concurrent-viewers-${i}`).innerText;
-            const superchatTotal = document.getElementById(`video-superchat-total-${i}`).innerText;
-            const likes = document.getElementById(`video-likes-${i}`).innerText;
-            const views = document.getElementById(`video-views-${i}`).innerText;
-            const livePercentage = document.getElementById(`video-percentage-${i}`).innerText;
-            const topSuperchatUsers = document.getElementById(`video-top-superchat-users-${i}`).innerText;
-            let date = new Date();
-            let formattedDate = date.toLocaleString('en-US', { timeZoneName: 'short' });
+    for (let video of data) {
+        let date = new Date();
+        let formattedDate = date.toLocaleString('en-US', { timeZoneName: 'short' });
 
-            message += `Title: ${title}, Live Viewers: ${liveViewers} (${livePercentage}%), Superchat Total: $${superchatTotal}, Likes: ${likes}, Views: ${views}, Top Superchat Users: ${topSuperchatUsers}, Data as of: ${formattedDate} (${timeZone})\n\n`;
-        }
+        message += `Title: ${video.title}, Live Viewers: ${video.concurrentViewers} (${video.livePercentage}%), Superchat Total: $${video.superchatTotal}, Likes: ${video.likes}, Views: ${video.views}, Data as of: ${formattedDate} (${timeZone})\n\n`;
     }
-    sendToDiscord(message);
+    // sendToDiscord(message);
 }
+
 
 
 setInterval(prepareDataAndSend, 5 * 60 * 1000); // 5 minutes in milliseconds

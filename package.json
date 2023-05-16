@@ -1,0 +1,25 @@
+{
+  "name": "comparestreams",
+  "version": "1.0.0",
+  "description": "",
+  "main": "createdb.js",
+  "scripts": {
+    "test": "jest test.js",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dstein131/compareStreams.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/dstein131/compareStreams/issues"
+  },
+  "homepage": "https://github.com/dstein131/compareStreams#readme",
+  "devDependencies": {
+    "webpack": "^5.82.1",
+    "webpack-cli": "^5.1.1"
+  }
+}
