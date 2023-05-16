@@ -29,92 +29,47 @@ const insertLivestreamData = async (data) => {
 };
 
 
-const sendSuperchatData = async (username, amount, video_id) => {
-  const queryText = `
-    INSERT INTO superchat_data (username, amount, video_id)
-    VALUES ($1, $2, $3)
-  `;
-  
-  const values = [username, amount, video_id];
+const getTotalSuperchatAmountByVideoId = async (videoId) => {
+  const queryText = 'SELECT total_super_chat_amount FROM livestream_data WHERE video_id = $1 ORDER BY timestamp DESC LIMIT 1';
+  const values = [videoId];
 
-  try {
-    const res = await new Promise((resolve, reject) => {
-      db.query(queryText, values, (err, res) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(res);
-        }
-      });
-    });
+  // Execute the query using the database module
+  const res = await db.query(queryText, values);
 
-    console.log('Successfully sent superchat data');
-  } catch (err) {
-    console.log('Error sending superchat data:', err.stack);
+  // If the query returns no data or the total_super_chat_amount is null, return 0
+  if (res.rows.length === 0 || res.rows[0].total_super_chat_amount === null) {
+    return 0;
   }
+
+  // Otherwise, return the total_super_chat_amount
+  return res.rows[0].total_super_chat_amount;
 };
 
-const getSuperchatDataByVideoId = async (video_id) => {
-  const queryText = `
-    SELECT *
-    FROM superchat_data
-    WHERE video_id = $1
-  `;
+const getVideoDataByVideoId = async (videoId) => {
+  const queryText = 'SELECT * FROM livestream_data WHERE video_id = $1 ORDER BY timestamp DESC LIMIT 1';
+  const values = [videoId];
 
-  const values = [video_id];
+  // Execute the query using the database module
+  const res = await db.query(queryText, values);
 
-  try {
-    const res = await new Promise((resolve, reject) => {
-      db.query(queryText, values, (err, res) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(res);
-        }
-      });
-    });
-
-    console.log('Successfully retrieved superchat data');
-    return res.rows; // Return the retrieved rows
-  } catch (err) {
-    console.log('Error retrieving superchat data:', err.stack);
-    throw err; // Rethrow the error to be handled by the caller
+  // If the query returns no data, return null
+  if (res.rows.length === 0) {
+    return null;
   }
+
+  // Otherwise, return the data
+  return res.rows[0];
 };
 
-const getTotalSuperchatAmountByVideoId = async (video_id) => {
-  const queryText = `
-    SELECT SUM(amount) as total_amount
-    FROM superchat_data
-    WHERE video_id = $1
-  `;
 
-  const values = [video_id];
 
-  try {
-    const res = await new Promise((resolve, reject) => {
-      db.query(queryText, values, (err, res) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(res);
-        }
-      });
-    });
 
-    console.log('Successfully retrieved total superchat amount');
-    return res.rows[0].total_amount; // Return the total amount
-  } catch (err) {
-    console.log('Error retrieving total superchat amount:', err.stack);
-    throw err; // Rethrow the error to be handled by the caller
-  }
-};
 
 
 
 module.exports = {
   insertLivestreamData,
-  sendSuperchatData,
-  getSuperchatDataByVideoId,
-  getTotalSuperchatAmountByVideoId
+  getTotalSuperchatAmountByVideoId,
+  getVideoDataByVideoId
+
 };

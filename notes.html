@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>TSM Note Taking Test App</title>
+</head>
+<body>
+  <h1>TSM Note Taking Test App</h1>
+  
+  <h2>Existing Notes:</h2>
+  <textarea id="notesTextArea" rows="10" cols="50" readonly></textarea>
+
+  <h2>New Note:</h2>
+  <textarea id="newNoteTextArea" rows="4" cols="50"></textarea>
+  <br>
+  <button onclick="saveNote()">Save Note</button>
+
+  <script>
+// Fetch existing notes and populate the text area
+function fetchNotes() {
+  const notes = localStorage.getItem('notes');
+  const notesTextArea = document.getElementById('notesTextArea');
+
+  if (notes) {
+    notesTextArea.value = notes;
+  }
+}
+
+// Save a new note
+function saveNote() {
+  const timestamp = new Date().toLocaleString();
+  const noteContent = document.getElementById('newNoteTextArea').value;
+  const notes = JSON.parse(localStorage.getItem('notes')) || [];
+
+  // Create a new note object with timestamp and content
+  const newNote = {
+    timestamp: timestamp,
+    content: noteContent
+  };
+
+  // Add the new note to the existing notes array
+  notes.push(newNote);
+
+  // Save the updated notes to local storage
+  localStorage.setItem('notes', JSON.stringify(notes));
+
+  // Update the text area with the updated notes
+  const notesTextArea = document.getElementById('notesTextArea');
+  notesTextArea.value = notes.map(note => `[${note.timestamp}] ${note.content}`).join('\n');
+}
+
+  </script>
+</body>
+</html>
