@@ -14,7 +14,7 @@ const insertLivestreamData = async (data) => {
     const livePercentage = parseFloat(item.livePercentage);
     const topChatUsers = JSON.stringify(item.topChatUsers); // Assuming your data object contains a field called 'topChatUsers'
 
-    const values = [item.videoId, item.title, views, likes, concurrentViewers, superChatAmount, livePercentage, item.channelName, item.topSuperchatUsers];
+    const values = [item.videoId, item.title, views, likes, concurrentViewers, superChatAmount, livePercentage, item.channelTitle, item.topSuperchatUsers];
       
     // Execute the query
     await db.query(queryText, values);
@@ -57,14 +57,67 @@ const getVideoDataByVideoId = async (videoId) => {
 };
 
 
+const registerUser = async (username, password) => {
+  const queryText = 'INSERT INTO users (username, password) VALUES ($1, $2)';
+  const values = [username, password];
 
+  try {
+    await db.query(queryText, values);
+    console.log('User registered successfully:', username);
+    return true;
+  } catch (err) {
+    console.log('Error registering user:', err.stack);
+    return false;
+  }
+};
 
+const loginUser = async (username, password) => {
+  const queryText = 'SELECT * FROM users WHERE username = $1 AND password = $2';
+  const values = [username, password];
 
+  try {
+    const res = await db.query(queryText, values);
+    if (res.rows.length === 1) {
+      console.log('User logged in successfully:', username);
+      return true;
+    } else {
+      console.log('Invalid username or password');
+      return false;
+    }
+  } catch (err) {
+    console.log('Error logging in user:', err.stack);
+    return false;
+  }
+};
 
+// Function to retrieve latest top chat users for a specific video
+const getLatestTopChatUsers = (videoId) => {
+  return new Promise((resolve, reject) => {
+    const queryText = `
+      SELECT top_chat_users
+      FROM livestream_data
+      WHERE video_id = $1
+      ORDER BY timestamp DESC
+      LIMIT 1
+    `;
+
+    db.query(queryText, [videoId], (err, res) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(res.rows[0]);
+      }
+    });
+  });
+};
 
 module.exports = {
+  registerUser,
+  loginUser,
+  registerUser,
+  loginUser,
   insertLivestreamData,
   getTotalSuperchatAmountByVideoId,
-  getVideoDataByVideoId
+  getLatestTopChatUsers
 
 };

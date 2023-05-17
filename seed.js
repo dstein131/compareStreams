@@ -27,28 +27,30 @@ const createLivestreamTable = () => {
     });
   };
   
-  
-// Function to create superchattable table
-const createSuperchatTable = () => {
+
+  const createUserTable = () => {
     const queryText = `
-      CREATE TABLE IF NOT EXISTS superchat_data (
+      CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         username TEXT,
-        amount FLOAT,
-        video_id TEXT,
-        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        password TEXT,
+        email TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `;
   
     db.query(queryText, (err, res) => {
       if (err) {
-        console.log('Error creating superchat_data table:', err.stack);
+        console.log('Error creating users table: ', err.stack);
       } else {
-        console.log('Successfully created superchat_data table');
+        console.log('Successfully created users table');
       }
     });
   };
   
+  
+
+  
 // Call the functions to create tables
 createLivestreamTable();
-createSuperchatTable();
+createUserTable();
