@@ -10,11 +10,11 @@ let video4TopSuperchatUsers = [];
 let videoSuperChatTotals = [];
 let videoTopSuperChatUsers = [];
 let apiKeys = [
+  "AIzaSyASShv8zh_tbj6m4uhcn9olHBZCihKABXQ",
+  "AIzaSyCavuo49y58vKYZM1T-12bJRUqcAu3SuHc",
   "AIzaSyCRO6LdrRE0hdjHFXblMZZFHNN_3-4lpYU",
   "AIzaSyCluXZQNYEP5PI0s511RL2yoKNwsJX1DwQ",
   "AIzaSyBWvu_9YTf9KPdiBcDh1rewr0Fo6IJAp14",
-  "AIzaSyASShv8zh_tbj6m4uhcn9olHBZCihKABXQ",
-  "AIzaSyCavuo49y58vKYZM1T-12bJRUqcAu3SuHc",
   "AIzaSyCj3uIPZWn9iqhoG4GvTLGMyC2MKl3gOcM",
 ];
 let currentIndex = 0;
