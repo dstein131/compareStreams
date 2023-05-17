@@ -4,7 +4,6 @@
   "description": "",
   "main": "createdb.js",
   "scripts": {
-    "test": "jest test.js",
     "start": "node server.js"
   },
   "repository": {
