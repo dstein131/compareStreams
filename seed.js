@@ -1,63 +1,46 @@
 const db = require('./db.js');
-const { insertLivestreamData } = require('./queries.js');
 
-// Function to generate a random number within a range
-function getRandomNumber(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-// Function to generate a random superchat data
-function generateRandomSuperchatData(videoId) {
-  const superchatId = Math.random().toString(36).substr(2, 9);
-  const channelId = Math.random().toString(36).substr(2, 9);
-  const amount = getRandomNumber(1, 100);
-  const currency = 'USD';
-
-  return {
-    superchatId,
-    videoId,
-    channelId,
-    amount,
-    currency,
-  };
-}
-
-async function seed() {
+async function createTables() {
   try {
-    // Generate example livestream data
-    const livestreamData = {
-      videoId: '123456789',
-      title: 'Example Livestream',
-      startTime: new Date(),
-      endTime: new Date(),
-    };
+    // Connect to the database
+    await db.connect();
 
-    // Generate example superchat data
-    const superchatData = [];
-    for (let i = 0; i < 10; i++) {
-      superchatData.push(generateRandomSuperchatData(livestreamData.videoId));
-    }
+    // Create the livestreams table
+    const createLivestreamsTableQuery = `
+    CREATE TABLE IF NOT EXISTS livestreams (
+      id SERIAL PRIMARY KEY,
+      video_id VARCHAR(255) UNIQUE NOT NULL,
+      title VARCHAR(255) NOT NULL,
+      start_time TIMESTAMP WITH TIME ZONE NOT NULL,
+      end_time TIMESTAMP WITH TIME ZONE NOT NULL,
+      views INTEGER DEFAULT 0,
+      live_viewers INTEGER DEFAULT 0,
+      total_likes INTEGER DEFAULT 0
+    );
+  `;
+    await db.query(createLivestreamsTableQuery);
 
-    // Insert the example data
-    await insertLivestreamData({
-      ...livestreamData,
-      superchatData,
-    });
+    // Create the superchats table
+    const createSuperchatsTableQuery = `
+      CREATE TABLE IF NOT EXISTS superchats (
+        id SERIAL PRIMARY KEY,
+        livestream_id INTEGER REFERENCES livestreams(id),
+        superchat_id VARCHAR(255) UNIQUE NOT NULL,
+        video_id VARCHAR(255) NOT NULL,
+        channel_id VARCHAR(255) NOT NULL,
+        amount INTEGER NOT NULL,
+        currency VARCHAR(10) NOT NULL
+      );
+    `;
+    await db.query(createSuperchatsTableQuery);
 
-    console.log('Seed data inserted successfully');
-    process.exit(0);
+    console.log('Tables created successfully');
   } catch (error) {
-    console.error('Failed to insert seed data:', error);
-    process.exit(1);
+    console.error('Failed to create tables:', error);
+  } finally {
+    // Close the database connection
+    await db.end();
   }
 }
 
-// Connect to the database and run the seed function
-db.connect()
-  .then(() => {
-    seed();
-  })
-  .catch((error) => {
-    console.error('Failed to connect to the database:', error);
-    process.exit(1);
-  });
+createTables();
