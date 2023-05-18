@@ -4,8 +4,7 @@
   "description": "",
   "main": "createdb.js",
   "scripts": {
-    "start": "node server.js",
-    "seed": "node createdb.js"
+    "start": "node server.js"
   },
   "repository": {
     "type": "git",
