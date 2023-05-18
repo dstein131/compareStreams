@@ -1,3 +1,4 @@
+require('dotenv').config(); // Load environment variables from .env file
 const axios = require('axios');
 
 // Prepare some mock data to send
@@ -28,8 +29,10 @@ const mockData = {
   totalLikes: 50,
 };
 
+const dbUrl = process.env.DATABASE_URL; // Use the DATABASE_URL from the .env file
+
 axios
-  .post('http://localhost:3000/youtube-notifications', mockData)
+  .post(dbUrl, mockData) // Use the provided PostgreSQL database URL as the endpoint
   .then((res) => {
     console.log(`Status: ${res.status}`);
     console.log('Body: ', res.data);
