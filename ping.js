@@ -32,7 +32,7 @@ const mockData = {
 const dbUrl = process.env.DATABASE_URL; // Use the DATABASE_URL from the .env file
 
 axios
-  .post(compstream.herokuapp.com, mockData) // Use the provided PostgreSQL database URL as the endpoint
+  .post('https://compstream.herokuapp.com', mockData)
   .then((res) => {
     console.log(`Status: ${res.status}`);
     console.log('Body: ', res.data);
