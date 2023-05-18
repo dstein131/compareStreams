@@ -1,86 +1,62 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const { insertLivestreamData, getTotalSuperchatAmountByVideoId, getVideoDataByVideoId, registerUser, loginUser, getLatestTopChatUsers } = require('./queries.js');
+const {
+  insertLivestreamData,
+  insertSuperchatData,
+} = require('./queries');
 
 const app = express();
 
 app.use(cors());
 app.use(bodyParser.json());
 
-app.post('/livestreamData', async (req, res) => {
-  const data = req.body;
-  try {
-    await insertLivestreamData(data);
-    res.status(200).json({ message: 'Livestream data inserted successfully' });
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: 'Failed to insert livestream data' });
-  }
-});
+app.post('/youtube-notifications', async (req, res) => {
+  const notification = req.body;
 
-app.get('/livestreamData', async (req, res) => {
-  const videoId = req.query.video_id;
-  try {
-    const superchatData = await getVideoDataByVideoId(videoId);
-    res.status(200).json({ message: 'Superchat data fetched successfully', data: superchatData });
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: 'Failed to fetch superchat data' });
-  }
-});
+  const hubChallenge = req.query['hub.challenge'];
+  const hubMode = req.query['hub.mode'];
 
-app.get('/superchatData', async (req, res) => {
-  const videoId = req.query.video_id;
-  try {
-    const superchatData = await getTotalSuperchatAmountByVideoId(videoId);
-    res.status(200).json({ message: 'Superchat data fetched successfully', data: superchatData });
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: 'Failed to fetch superchat data' });
+  if (hubChallenge && hubMode === 'subscribe') {
+    return res.status(200).send(hubChallenge);
   }
-});
 
-app.get('/topSimps', async (req, res) => {
-    const videoId = req.query.video_id;
-    try {
-      const topSimps = await getLatestTopChatUsers(videoId);
-      res.status(200).json({ message: 'Top simps fetched successfully', data: topSimps });
-    } catch (err) {
-      console.log(err);
-      res.status(500).json({ message: 'Failed to fetch top simps' });
-    }
+  // Extract livestream and superchat data from the notification
+  const livestreamData = {
+    videoId: notification.videoId, // adjust these field names according to the actual structure of your notifications
+    title: notification.title,
+    startTime: notification.startTime,
+    endTime: notification.endTime,
+    views: notification.views,
+    live_viewers: notification.liveViewers,
+    total_likes: notification.totalLikes,
+  };
+
+  const superchatData = notification.entry.map(entry => {
+    const payload = entry.changes[0].payload;
+    return {
+      superchatId: payload.superchat_id,
+      videoId: payload.video_id,
+      channelId: payload.channel_id,
+      amount: payload.amount,
+      currency: payload.currency
+    };
   });
-  
 
-app.post('/register', async (req, res) => {
-  const { username, password } = req.body;
   try {
-    const success = await registerUser(username, password);
-    if (success) {
-      res.status(200).json({ success: true, message: 'User registered successfully' });
-    } else {
-      res.status(400).json({ success: false, message: 'Error registering user' });
-    }
+    // Insert the livestream and superchat data
+    await insertLivestreamData({
+      ...livestreamData,
+      superchatData,
+    });
+
+    res.sendStatus(200);
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ success: false, message: 'Error registering user' });
+    console.error(err);
+    res.sendStatus(500);
   }
 });
 
-app.post('/login', async (req, res) => {
-  const { username, password } = req.body;
-  try {
-    const success = await loginUser(username, password);
-    if (success) {
-      res.status(200).json({ success: true, message: 'User logged in successfully' });
-    } else {
-      res.status(400).json({ success: false, message: 'Invalid username or password' });
-    }
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ success: false, message: 'Error logging in user' });
-  }
+app.listen(3000, () => {
+  console.log('Server is running on port 3000');
 });
-
-app.listen(3000, () => console.log('Server is running on port 3000'));

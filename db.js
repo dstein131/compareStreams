@@ -7,17 +7,12 @@ const pool = new Pool({
   port: 5432,
 });
 
-pool.connect((err) => {
-  if (err) {
-    console.error('connection error', err.stack);
-  } else {
-    console.log('connected');
-  }
-});
-
 module.exports = {
   query: (text, params, callback) => {
     return pool.query(text, params, callback);
+  },
+  connect: () => {
+    return pool.connect();
   },
   end: () => {
     return pool.end();
