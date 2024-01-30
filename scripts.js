@@ -56,25 +56,26 @@ async function initClient() {
 }
 
 document.addEventListener("DOMContentLoaded", function () {
-  document
-    .getElementById("video-form")
-    .addEventListener("submit", async function (event) {
-      event.preventDefault();
-      const videoIds = [
-        document.getElementById('video-id-1').value,
-        document.getElementById('video-id-2').value,
-        document.getElementById('video-id-3').value,
-        document.getElementById('video-id-4').value,
+  document.getElementById("video-form").addEventListener("submit", async function (event) {
+    event.preventDefault();
+    const videoIds = [
+      document.getElementById('video-id-1').value,
+      document.getElementById('video-id-2').value,
+      document.getElementById('video-id-3').value,
+      document.getElementById('video-id-4').value,
     ];
-      activeVideoIds = videoIds.filter((id) => id !== "");
-      initClient(); // Initialize client after updating super chat totals
-      //hide the video-form
-      if (activeVideoIds.length >= 2) {
-        compareLiveStreams(activeVideoIds);
-        this.classList.add('d-none');
-      }
-    });
-    
+    activeVideoIds = videoIds.filter((id) => id !== "");
+    initClient(); // Initialize client after updating super chat totals
+
+    // Hide the video-form and pie chart if only one video ID is active
+    if (activeVideoIds.length === 1) {
+      this.classList.add('d-none');
+      document.querySelector('.chart-container').style.display = 'none'; // Hide pie chart container
+    } else if (activeVideoIds.length >= 2) {
+      compareLiveStreams(activeVideoIds);
+      this.classList.add('d-none');
+    }
+  });
 });
 
 setInterval(initClient, 60 * 1000); // Reinitialize client every 60 seconds
@@ -125,6 +126,8 @@ function updatePieChart(chart, data) {
 }
 
 function compareLiveStreams(videoIds) {
+  
+
     let nextPageTokens = Array(videoIds.length).fill(null),
       superchatTotals = Array(videoIds.length).fill(0),
       exchangeRates = {},
